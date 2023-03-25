@@ -1,0 +1,8 @@
+{
+    "name": "my-app",
+    "type": "module",
+    "dependencies": {
+        "node": ">=13.2.0",
+        "readline-sync": "^1.4.10"
+    }
+}
