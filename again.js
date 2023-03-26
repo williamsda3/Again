@@ -45,15 +45,14 @@
 // }
 
 
-// Truuu//
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 
 import { keyInSelect, question} from 'readline-sync';
 import readline from 'readline';
-import { messageHistory, addToMessageHistory } from './messageHistory.js';
 
-//const readline = require('readline');
+
 
 // create an interface for reading lines from standard input
 
@@ -93,6 +92,7 @@ function ok(){
       this.maxHealth = health;
       this.maxDefense = defense;
       this.isAttacking = false;
+      this.distanceClosed = 0;
     }
     
     attack(enemy) {
@@ -126,6 +126,8 @@ function ok(){
   /* Introducing TITAN - Titan is a showman that will do everything to be on top. Titan's passive is INTIMIDATE: if Titan's health is higher than his enemy's health his defense will increase.
   --Titan's Special Ability is One-UP: if Titan's opponent has more defense than him he buffs himself to have +1 defense then them. After regaining his dominance Titan unleashes a powerful attack on his now weaker enemy */
   
+  
+  // find a way to nerf
   class TitanBear extends Player {
     constructor(name) {
       super(name, 200, 20, 10, 20, true);
@@ -174,25 +176,70 @@ function ok(){
   
   // Crit damage || 'exposed' damage
   
+  // stealth -close combat. Passive is Dodge: Tempest has a X percent of dodgeing an incoming attack, Special is Pursue/Execute: on use tempest will pursue his enemy closing the distance between them.
+  // Once in range, tempest perform an execute attack on the enemy.
+  // The closer tempest gets to an enemy the more damage he will take, the change of dodge will also be lower when in close range.
+  // When activly pursuing, the chance of dodge wil will be low. 
   class TempestPanther extends Player {
     constructor(name) {
-      super(name, 150, 30, 30, 70, true);
+      super(name, 150, 5, 30, 70, true);
+      this.name = "temp";
       this.attackName = "Lightning Strike-(30)";
+      this.distanceFromEnemy = 100;
+     
       
     }
     attack(enemy, isDefending) {
-      addToOutput(`${this.name} uses Shoulder Charge on ${enemy.name}`);
-      addToOutput(`${this.name}'s defense increased by 20!`);
-      //this.defense += 20;
+      addToOutput(`${this.name} attacked ${enemy.name}`);
+      
+      
       
       super.attack(enemy, isDefending);
     }
     special(enemy) {
+      let damage = this.attackPower;
+      let random = Math.random() * 100;
       
-    }
+      // Implement dogdge 
+      if(random < 90)
+      if(this.distanceFromEnemy <= 0){
+        addToOutput(`${enemy.name} Executed!`)
+       
+        damage = 999;
+        this.distanceFromEnemy = 100;
+      }
+       this.distanceFromEnemy -= 20;
+       
+       this.distanceClosed = 100 - this.distanceFromEnemy
+      
+      addToOutput(`Closing Distance: ${this.distanceFromEnemy}`)
+      addToOutput(this.distanceClosed);
+      
+      if (enemy.isDefending) {
+        if (enemy.defense >= damage) {
+          enemy.defense -= damage;
+        } else {
+          let left = damage - enemy.defense;
+          enemy.defense = 0;
+          enemy.health -= left;
+        }
+      } else {
+        enemy.health -= damage;
+      }
+      
+      console.log(`${this.name} attacks ${enemy.name} for ${damage} damage.`);
+      
+      if (enemy.health <= 0) {
+        console.log(`${enemy.name} has been defeated.`);
+      } 
+      
+    } 
   }
   
+  // Gardener, Special plants a tree, as the game progresses, the tree will grow. The tree will do different things based on it stage of growth.
   
+  
+  // ability unlocks after x amount damage done
   class Phoenix extends Player {
     constructor(name) {
       super(name, 150, 27, 25, 55, true);
@@ -210,6 +257,9 @@ function ok(){
   /* Introducing RAY - Ray has a very unique passive and play-style. The more critical his health is, the more powerful he will become. 
   - As he takes damage he begins to flicker, dealing more damage. Once he reaches critical health he becomes unstable, causing a supernova - his damage radiates, piercing through enemy's defense.
   - RAY can heal himself, making him more stable, however in his default state he is much weaker. */
+  
+  // nerf health special 
+  
   
   class Ray extends Player {
     constructor(name) {
@@ -278,7 +328,10 @@ function ok(){
   - The first part of his special ability is sharpen: While sharpening his tools REO is susceptible to damage, however once fully sharpened he deals a powerful attack!
   - The second part of his special ability is fortify: REO creates a shield and strengthens it each time
   - REO's passive is defense-mechanism: when low health REO breaks his own shield transferring it into health. If there is no shield he will transfer his own attack power into health!      */
-  class REO extends Player {
+  // have 'reflect ability/
+  
+  // maybe change to the study character
+  class REO extends Player { 
     constructor(name) {
       super(name, 120, 30, 0, 25, true);this.attackName = "30";               // Important to keep in mind that REO's standard attack is high, so it might be best to switch between sharped(to fortify) and then use the normal attack,  
       this.chargeCount = 1 ;            
@@ -321,7 +374,7 @@ function ok(){
         if (enemy.health <= 0) {
           addToOutput(`${enemy.name} has been defeated.`);
         }
-        this.chargeCount = 1
+        this.chargeCount = 0
         this.frenzyDamage = this.attackPower;
       }
       if(!this.replenished) {
@@ -347,44 +400,7 @@ function ok(){
   }
   
   
-  // class Room {
-  //   constructor() {
-  //     this.enemies = [];
-  //   }
   
-  //   addEnemy(enemy) {
-  //     this.enemies.push(enemy);
-  //   }
-  
-  //   removeEnemy(enemy) {
-  //     const index = this.enemies.indexOf(enemy);
-  //     if (index !== -1) {
-  //       this.enemies.splice(index, 1);
-  //     }
-  //   }
-  
-  //   hasEnemies() {
-  //     return this.enemies.length > 0;
-  //   }
-  
-  //   getEnemyAbilities() {
-  //     const abilities = [];
-  //     for (const enemy of this.enemies) {
-  //       abilities.push(enemy.ability());
-  //     }
-  //     return abilities;
-  //   }
-  // }
-  
-  // class Enemy {
-  //   constructor(name, health, attack, defense, ability) {
-  //     this.name = name;
-  //     this.health = health;
-  //     this.attack = attack;
-  //     this.defense = defense;
-  //     this.ability = ability;
-  //   }
-  // }
   
   // // Example enemy abilities
   // const abilities = {
@@ -417,9 +433,12 @@ function ok(){
       this.maxHealth = health;
       this.maxDefense = defense;
       
+      
     }
     attack(player) {
       let damage = this.attackPower;
+      
+       
       
       if (player.isDefending) {
         if (player.defense >= damage) {
@@ -437,16 +456,17 @@ function ok(){
       
       if (player.health <= 0) {
         console.log(`${player.name} has been defeated.`);
-      }
+      } this.attackPower +=  player.distanceClosed
     }
     
     block(){
       addToOutput(`${this.name} is defending!`);
       this.isDefending = true;
+      this.attackPower +=  (player.distanceClosed * .1) // will increase damage based on how close it is to the player
     }
     
     
-    // only works if players first choice id defend...... 
+    
     makeDecision(player) {
       //addToOutput(`health: ${this.health}, maxHealth: ${this.maxHealth}, defense: ${this.defense}, maxDefense: ${this.maxDefense}`);
       
@@ -485,6 +505,7 @@ function ok(){
     for (let i = 0; i < numEnemies; i++) {
       // Generate a random enemy type
       //const enemyType = Math.floor(Math.random() * 5);
+      // maybe buff enemiy
       const enemy = new Enemy("enemy1",Math.floor(Math.random() * 61) + 150,Math.floor(Math.random() * 10) + 10,Math.floor(Math.random() * 25) + 25 )
       enemies.push(enemy);
       // Generate an enemy object with a name, health, attack, and defense
@@ -677,64 +698,7 @@ function enemyAction( defense, speed, health, moves) {
   }
 }
 
-// const input = question("What would you like to do? \n");
-// // Set up initial game state
-// let pplayer = new Player("Bob", 100, 10, 5, 20, true);
-// let eenemy = new enemy("Goblin", 50, 5, 2, 10, true);
-
-// // Game loop
-// while (pplayer.isAlive && eenemy.isAlive) {
-//   // Player turn
-//   let playerAction = input
-//   switch (playerAction) {
-//     case "attack":
-//      pplayer.attack(eenemy);
-//       break;
-//     case "defend":
-//       pplayer.block();
-//       break;
-//     case "ability":
-//       player.ability(eenemy);
-//       break;
-//     default:
-//       // Handle invalid input
-//       break;
-//   }
-
-//   // Enemy turn
-//   let enemyAction = getEnemyAction();
-//   switch (enemyAction) {
-//     case "attack":
-//       enemy.attack(pplayer);
-//       break;
-//     case "defend":
-//       enemy.block();
-//       break;
-//     case "ability":
-//       enemy.ability(pplayer);
-//       break;
-//     default:
-//       // Handle invalid input
-//       break;
-//   }
-// }
-
-
-// // Check win/lose conditions
-// if (!pplayer.isAlive) {
-//   // Player lost
-// } else if (!eenemy.isAlive) {
-//   // Player won
-// }
-// }
-
 ok();
-// const defense = 10;
-// const speed = 70;
-// const health = 50;
-
-// const action = enemyAction(defense, speed, health);
-// console.log(action); // "dodge", "block", or "attack"
 
 /*----------------------------To Add------------------------------------------------------------------------------
 
@@ -752,9 +716,21 @@ ok();
 -- I think make Titan's description better
 !!!!!-- !DO  the second and third character
 
-!--Adjust both player and enemy stats accordingly so it is move balanced. 
+!-- Adjust both player and enemy stats accordingly so it is move balanced. 
+
+!-- Implement Spacial Awareness :0,    Every character will be a distance away from another, certain abilities/ attack will deal more/less damage based on distance. Certain abilities will/ wont work.
+
+--- gardener/mechaninc can build things (thing does something based on thing type)
+
+-- in between dungeon/s player levels up - stats will increase, (prompt a skill tree for certain characters) // assasin level up(throwing knifes has percentage of hitting based on distance, higher damage if trown farther away though) 
+--- An option to play as an enemy and verse hero
+
+-- character that studies enemy, based how much knowledge it gained a certain defuff will happen.
 
 
 potentially use the original code(at the very top) for player class descriptions (maybe by adding a 6th choice in the menu for more info(descriptions)
 -if you are going to use 'AoE' it could be used by effecting enemies[current] && enemies[current+1] - basically deal damage to current enemy and next enemy in array (will have to handle out of bounds though..) 
+
+
+
 ------------------------------------------------------------------------------------------------------------------*/
