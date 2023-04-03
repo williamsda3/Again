@@ -51,14 +51,16 @@
 
 import { keyInSelect, question} from 'readline-sync';
 import readline from 'readline';
+import figlet from 'figlet';
+import chalk from'chalk';
 
 
 
 // create an interface for reading lines from standard input
 
-// Your code using readline goes here
+// Code for using readline 
 function ok(){
-  const MAX_LINES = 10;
+  let MAX_LINES = 7;
   const output = [];
   
   function addToOutput(text) {
@@ -81,7 +83,7 @@ function ok(){
   
   
   class Player {
-    constructor(name, health, attack, defense, speed, isAlive) {
+    constructor(name, health, attack, defense, speed, isAlive, playerClass) {
       this.name = name;
       this.health = health;
       this.attackPower = attack;
@@ -93,6 +95,8 @@ function ok(){
       this.maxDefense = defense;
       this.isAttacking = false;
       this.distanceClosed = 0;
+      this.enemyDefended = false;
+      this.flee = false;
     }
     
     attack(enemy) {
@@ -131,28 +135,56 @@ function ok(){
   class TitanBear extends Player {
     constructor(name) {
       super(name, 200, 20, 10, 20, true);
+      this.playerClass = "Titan"
       this.attackName = "20";
+      this.enemyDefended = false;
+      this.firstStrike = false;
+      this.secondStrike = false;
+      this.gridLock = false;
+      this.pursue = 20
+      this.maxBuff = 50
     }
     
-    attack(enemy, isDefending) {
-      addToOutput(`${this.name} uses Shoulder Charge on ${enemy.name}`);
-      addToOutput(`${this.name}'s defense increased by 20!`);
-      if(this.health >= enemy.health) {
-        this.defense += 5
+    attack(enemy) {
+      if (this.health >= enemy.health) {
+        this.defense += 5;
+        this.maxDefense = this.defense 
+        if(this.defense >= this.maxBuff){
+          this.defense = this.maxBuff;
+          this.maxDefense = this.defense 
+        }
       }
-      //this.defense += 20;
       
-      super.attack(enemy, isDefending);
+      let damage = this.attackPower;
       
+      if (enemy.isDefending) {
+        if (enemy.defense >= damage) {
+          enemy.defense -= damage;
+        } else {
+          let left = damage - enemy.defense;
+          enemy.defense = 0;
+          enemy.health -= left;
+        }
+      } else {
+        enemy.health -= damage;
+      }
+      
+      console.log(`${this.name} attacks ${enemy.name} for ${damage} damage.`);
+      
+      if (enemy.health <= 0) {
+        console.log(`${enemy.name} has been defeated.`);
+      }
     }
+    
     special(enemy) { // One-UP
       let damage;
-      if(this.defense < enemy.defense) {
+      if (this.defense < enemy.defense) {
+        this.maxDefense = enemy.defense + 1;
         this.defense = enemy.defense + 1;
-        damage = this.attackPower + 50 ;
+        damage = this.attackPower + this.attackPower/2;
+      } else {
+        damage = this.attackPower /2;
       }
-      else{ damage = this.attackPower}
-      
       
       if (enemy.isDefending) {
         if (enemy.defense >= damage) {
@@ -174,6 +206,7 @@ function ok(){
     }
   }
   
+  
   // Crit damage || 'exposed' damage
   
   // stealth -close combat. Passive is Dodge: Tempest has a X percent of dodgeing an incoming attack, Special is Pursue/Execute: on use tempest will pursue his enemy closing the distance between them.
@@ -183,39 +216,118 @@ function ok(){
   class TempestPanther extends Player {
     constructor(name) {
       super(name, 150, 5, 30, 70, true);
-      this.name = "temp";
+      this.playerClass = "Tempest";
+      
       this.attackName = "Lightning Strike-(30)";
       this.distanceFromEnemy = 100;
-     
+      this.pursue = 20
+      this.firstStrike = false;
+      this.secondStrike = false;
+      this.gridLock = false;
+      this.pursue = 20
+      this.thunderboltCounter = 0
+      this.secondStrikeCounter = 0
+      this.dodged = false;
+      this.dodgeChance = 0.6
+      
       
     }
     attack(enemy, isDefending) {
-      addToOutput(`${this.name} attacked ${enemy.name}`);
+      
+      function abilityLands(chance) {
+        return Math.random() < chance;
+      }
+      
+      const dodgeLands = Math.random() < this.dodgeChance;
+      
+      if(dodgeLands){
+        this.dodged = true
+      }
       
       
       
-      super.attack(enemy, isDefending);
+      // Determine if ability A lands (80% chance)
+      const abilityALands = Math.random() < 0.8;
+      
+      if (abilityALands) {
+        this.thunderboltCounter++
+        this.attackPower = 30;
+        this.firstStrike = true;
+        this.secondStrike = false;
+        this.gridLock = false;
+        addToOutput(this.thunderboltCounter);
+        super.attack(enemy, isDefending);
+        // Determine if ability B lands (60% chance)
+        const abilityBLands = Math.random() < 0.6;
+        
+        if (abilityBLands) {
+          this.attackPower = 10;
+          this.secondStrike = true;
+          this.firstStrike = false;
+          this.gridLock = false;
+          this.secondStrikeCounter++;
+          addToOutput(this.secondStrikeCounter);
+          super.attack(enemy, isDefending);
+          // Determine if ability C lands (30% chance)
+          const abilityCLands = Math.random() < 0.3;
+          
+          if (abilityCLands) {
+            addToOutput("Enemy GridLocked!!!")
+            this.gridLock = true;
+            this.secondStrike = false;
+            this.firstStrike = false;
+            this.attackPower = 5;
+            this.pursue = 100;
+            super.attack(enemy, isDefending);
+            
+            console.log("Ability C landed");
+          } else {
+            addToOutput("Second Strike landed, but Third Strike missed");
+            this.gridLock = false;
+          }
+        } else {
+          addToOutput("ThunderBolt landed, but Second Strike missed");
+          this.secondStrikeCounter = 0;
+          this.secondStrike = false;
+          this.gridLock = false;
+        }
+      } else {
+        addToOutput("ThunderBolt missed");
+        this.thunderboltCounter = 0
+        this.firstStrike = false;
+        this.secondStrike = false;
+        this.gridLock = false;
+      } 
     }
-    special(enemy) {
+    special(enemy,isDefending) {
       let damage = this.attackPower;
-      let random = Math.random() * 100;
+      this.firstStrike = false;
+      this.secondStrike = false;
+      this.gridLock = false;
       
-      // Implement dogdge 
-      if(random < 90)
       if(this.distanceFromEnemy <= 0){
         addToOutput(`${enemy.name} Executed!`)
-       
+        
         damage = 999;
-        this.distanceFromEnemy = 100;
+        this.distanceFromEnemy = 120;
       }
-       this.distanceFromEnemy -= 20;
-       
-       this.distanceClosed = 100 - this.distanceFromEnemy
+      this.distanceFromEnemy -= this.pursue;
+      if(this.distanceFromEnemy < 0){
+        this.distanceFromEnemy = 0;
+      }
+      
+      
+      //   this.dodgeChance -= .1   - this will lower the dodge chance each time Tempest gets closer to the enemy  //
+      this.pursue = 20;
+      this.distanceClosed = 100 - this.distanceFromEnemy
       
       addToOutput(`Closing Distance: ${this.distanceFromEnemy}`)
       addToOutput(this.distanceClosed);
       
-      if (enemy.isDefending) {
+      if (isDefending) {
+        addToOutput('isDefending:'+ isDefending);
+        addToOutput('damage:'+ damage);
+        
         if (enemy.defense >= damage) {
           enemy.defense -= damage;
         } else {
@@ -264,13 +376,15 @@ function ok(){
   class Ray extends Player {
     constructor(name) {
       super(name, 180, 10, 75, 50, true);
+      this.playerClass = "Ray";
       this.attackName = "Illuminate-(22)";
       this.baseAttack = this.attackPower;
       this.flicker = false;
       this.radiate = false;
       this.flickerDamage = this.attackPower + 10;
       this.superNovaDamage = this.flickerDamage + 10;
-      
+      this.maxHealth = this.health;
+      this.heal = 50;
       
     }
     //fix!// make it so that when low health damage is increased, when critical low health damage peirces defense straight to enemy hp. Playstlye is to try an be as low health as possible with out dying, ability allows you to health youself just incase. maybe lowker health amout every use
@@ -279,18 +393,18 @@ function ok(){
       let damage = this.attackPower;
       if(this.health > 99){
         this.flickerDamage = this.baseAttack + 10;        
-        this.superNovaDamage = this.baseAttack + 10;            // RAY can stack his SuperNova damage by switching into and out of a unstable state. //
+        this.superNovaDamage = this.baseAttack + 20;            // RAY can stack his SuperNova damage by switching into and out of a unstable state. //
         this.flicker = false;
         this.radiate = false
         damage = this.baseAttack;
       }
-      else if(this.health <= 99 && this.health > 35){
+      else if(this.health <= (player.maxHealth) * 0.5 && this.health >= (player.maxHealth) * 0.2 ){
         this.flicker = true;
         this.radiate = false;
         damage = this.flickerDamage;
         
       }
-      else if(this.health <= 35){
+      else if(this.health <=  (player.maxHealth) * 0.2){
         this.radiate = true
         this.flicker = false
         damage = this.superNovaDamage
@@ -319,7 +433,20 @@ function ok(){
     }
     
     special(enemy) {
-      this.health += 50;  
+      //let count = 0
+      if(this.heal <= 10){
+        this.health += 1;
+        this.heal = 1
+      }
+      
+      else{
+        this.heal -= 10
+        this.health += this.heal;
+        
+      }
+      if(this.health > this.maxHealth){
+        this.health = this.maxHealth;
+      }
     }
   }
   
@@ -330,10 +457,11 @@ function ok(){
   - REO's passive is defense-mechanism: when low health REO breaks his own shield transferring it into health. If there is no shield he will transfer his own attack power into health!      */
   // have 'reflect ability/
   
-  // maybe change to the study character
+  // !!!! maybe change to the study character (Mad Scientist)
   class REO extends Player { 
     constructor(name) {
-      super(name, 120, 30, 0, 25, true);this.attackName = "30";               // Important to keep in mind that REO's standard attack is high, so it might be best to switch between sharped(to fortify) and then use the normal attack,  
+      super(name, 120, 30, 0, 25, true);this.attackName = "30"; // Important to keep in mind that REO's standard attack is high, so it might be best to switch between sharped(to fortify) and then use the normal attack,  
+      this.playerClass = "Reo"              
       this.chargeCount = 1 ;            
       this.baseAttack = this.attackPower;                                      // relying on extra health protection from special ability. Strategic play-style with delayed gratification
       this.frenzyDamage = this.attackPower;
@@ -353,11 +481,11 @@ function ok(){
       
     }
     special(enemy,isDefending){ 
-      addToOutput(`Charge Count: ${this.chargeCount}`);
+      //addToOutput(`Charge Count: ${this.chargeCount}`);
       if(this.chargeCount > 4){
         
         let damage = this.frenzyDamage;
-        if (enemy.isDefending) {
+        if (isDefending) {
           if (enemy.defense >= damage) {
             enemy.defense -= damage;
           } else {
@@ -369,10 +497,10 @@ function ok(){
           enemy.health -= damage;
         }
         this.defense += 10
-        addToOutput(`${this.name} used Frenzy ${enemy.name} for ${damage} damage!`);
+        // addToOutput(`${this.name} used Frenzy ${enemy.name} for ${damage} damage!`);
         
         if (enemy.health <= 0) {
-          addToOutput(`${enemy.name} has been defeated.`);
+          //  addToOutput(`${enemy.name} has been defeated.`);
         }
         this.chargeCount = 0
         this.frenzyDamage = this.attackPower;
@@ -437,10 +565,15 @@ function ok(){
     }
     attack(player) {
       let damage = this.attackPower;
+      this.isDefending = false;
       
-       
       
-      if (player.isDefending) {
+      if(player.dodged){
+        addToOutput(`${player.name} dodged!`)
+        player.dodged = false;
+      }
+      
+      else if (player.isDefending) {
         if (player.defense >= damage) {
           player.defense -= damage;
         } else {
@@ -459,9 +592,10 @@ function ok(){
       } this.attackPower +=  player.distanceClosed
     }
     
-    block(){
-      addToOutput(`${this.name} is defending!`);
+    block(player){
+      // addToOutput(`${this.name} is defending!`);
       this.isDefending = true;
+      player.enemyDefended = true;
       this.attackPower +=  (player.distanceClosed * .1) // will increase damage based on how close it is to the player
     }
     
@@ -478,14 +612,14 @@ function ok(){
         this.attack(player);
       } else if (healthRatio < 0.2) {
         // If the enemy's health is below 20%, always block
-        this.block();
+        this.block(player);
       } else {
         // Otherwise, make a random decision to attack or block
         const decision = Math.random() < 0.5 ? "attack" : "block";
         if (decision === "attack") {
           this.attack(player, false);
         } else {
-          this.block();
+          this.block(player);
         }
       }
     }
@@ -534,7 +668,7 @@ function ok(){
   
   addToOutput("Welcome to the game! Choose your character class:");
   
-  const classes = ["Titan-(Bear)", "Tempest-(Panther)", "Phoenix", "RAY", "REO"];
+  const classes = ["Titan-(Bear)", "Tempest", "Phoenix", "RAY", "REO"];
   const index = keyInSelect(classes, "Select a class:");
   
   if (index === -1) {
@@ -551,8 +685,9 @@ function ok(){
     case "Titan-(Bear)":
     player = new TitanBear(playerName);
     break;
-    case "Tempest-(Panther)":
+    case "Tempest":
     player = new TempestPanther(playerName);
+    MAX_LINES = 10;
     break;
     case "Phoenix":
     player = new Phoenix(playerName);
@@ -566,7 +701,7 @@ function ok(){
   }
   
   addToOutput(`Welcome ${player.name}! You have selected the ${selectedClass} class. \n` );
-  
+  const advance = question("Press 1 to continue...\n");
   
   const start= new Dungeon("first", enemies);
   // Now you can use the `player` object to implement the actual gameplay.
@@ -604,24 +739,143 @@ function ok(){
     }
     
     displayGameState() {
-      addToOutput(` \n ${this.player.name} stats are: Health: ${player.health}, Attack: ${player.attackName}, Defense: ${player.defense}, Speed: ${player.speed}.\n`);
       
-      let i = this.enemyCounter;
+      // Display the titles for Player Health and Defense
+      
+      addToOutput(`\n                  PLAYER HEALTH: ${player.health}/${player.maxHealth}                 PLAYER DEFENSE: ${player.defense}/${player.maxDefense}` )
+      
+      // If playing as RAY, the Health UI will have visuals for current health/power indicators
+      if(player.playerClass == "Ray"){
+        addToOutput(generateHealthProgressBar(player.health, player.maxHealth, 50) + "  " + generateProgressBar(player.defense,player.maxDefense, 25)+ " \n\n" )
+      }
+      
+      else{   
+        if(player.defense == player.maxBuff){
+          addToOutput(generateProgressBar(player.health, player.maxHealth, 50) + "  " + generateProgressBar(player.defense,player.maxDefense, 25)+ " MAX DEFENSE \n\n" )
+        }
+        else if(player.defense != player.maxBuff){
+          addToOutput(generateProgressBar(player.health, player.maxHealth, 50) + "  " + generateProgressBar(player.defense,player.maxDefense, 25)+ " \n\n" )
+        }
+        
+      }
+      
+      /*  create a UI for Tempest. for when the the hits stack or miss. Also add proximity to the UI and a indicator if they can execute or not!
+      if(player.playerClass == "Tempest"){
+        
+      }
+      */
+      if(player.playerClass == "Tempest"){
+        addToOutput("                                                               Proximity ")
+        addToOutput(` ATTACK POWER: ${generateThunderboltBar(100, 100, 25)}            ${generateProximityProgressBar(player.distanceClosed, 100, 25)}\n` )
+        
+      }
+      if(player.playerClass == "Ray"){
+        addToOutput(" ATTACK POWER: " + player.attackPower +  "                                     Heal Power: " + (player.heal))
+        
+      }
+      else{
+        addToOutput(" ATTACK POWER: " + player.attackPower )
+      }
+      
+      function generateHealthProgressBar(currentHealth, maxHealth, progressBarLength) {
+        const progressChars = Math.floor((currentHealth / maxHealth) * progressBarLength);
+        const emptyChars = progressBarLength - progressChars;
+        let color = "\x1b[32m"; // default color is green
+        
+        if (currentHealth <= maxHealth * 0.2) {
+          color = "\x1b[31m"; // change color to red if health is below 20%
+        } else if (currentHealth <= maxHealth * 0.5) {
+          color = "\x1b[33m"; // change color to yellow if health is below 50%
+        }
+        
+        const progressBar = `[${color}${"█".repeat(progressChars)}\x1b[0m${" ".repeat(emptyChars)}]`;
+        return progressBar;
+      }
+      function generateProximityProgressBar(value, total, size) {
+        const progress = Math.floor(value / total * size);
+        let progressBar = "█".repeat(progress) + " ".repeat(size - progress);
+        if (value == total) {
+          // Change color if execute is ready
+          progressBar = `\x1b[35m${"█".repeat(progress)}\x1b[0m${" ".repeat(size - progress)}`;
+          
+        } else{
+          progressBar = "█".repeat(progress) + " ".repeat(size - progress);
+          
+        }
+        return "[" + progressBar + "]";
+      }
+      
+      function generateThunderboltBar(currentHealth, maxHealth, progressBarLength) {
+        const progressChars = Math.floor((currentHealth / maxHealth) * progressBarLength);
+        const emptyChars = progressBarLength - progressChars;
+        let color = "\x1b[36m"; // default color is cyan
+        
+        if(!player.firstStrike) {
+          color = "\x1b[0m"
+        }
+        if(player.gridLock){
+          color = "\x1b[31m"; // change color to red if execute is ready
+        }
+        
+        if (player.secondStrike) {
+          color = "\x1b[33m"; // change color to yellow if second strike hit
+        }
+        if (player.firstStrike) {
+          color = "\x1b[36m"; // change color to red if first strike hit
+        }
+        else{
+          //  color = "\x1b[0m"
+        }
+        
+        
+        
+        const progressBar = `[${color}${"█".repeat(progressChars)}\x1b[0m${" ".repeat(emptyChars)}]`;
+        return progressBar;
+      }
+      
+      
+      
+      
+      
+      function generateProgressBar(currentValue, maxValue, barWidth) {
+        const percentage = currentValue / maxValue;
+        const progressChars = Math.floor(percentage * barWidth);
+        const emptyChars = barWidth - progressChars;
+        let progressBar = "[";
+        for (let i = 0; i < progressChars; i++) {
+          progressBar += "█";
+        }
+        for (let i = 0; i < emptyChars; i++) {
+          progressBar += " ";
+        }
+        progressBar += "]";
+        return progressBar;
+      }
       
       addToOutput(`Number of enemies: ${this.enemyRemaining}`);
-      addToOutput(`Current enemy Health: ${this.dungeon.enemies[this.enemyCounter].health}, Attack: ${this.dungeon.enemies[this.enemyCounter].attackPower}, Defense: ${this.dungeon.enemies[this.enemyCounter].defense}, Speed: ${this.dungeon.enemies[this.enemyCounter].speed} \n`);
+      // show "Enemy Defended" next to defense stat if enemy defended
       
+      addToOutput("                   ENEMY HEALTH: "+this.dungeon.enemies[this.enemyCounter].health+"/"+  this.dungeon.enemies[this.enemyCounter].maxHealth +"                 ENEMY DEFENSE: " + this.dungeon.enemies[this.enemyCounter].defense+"/"+ this.dungeon.enemies[this.enemyCounter].maxDefense )
+      if(this.dungeon.enemies[this.enemyCounter].isDefending) {
+        addToOutput(`${generateProgressBar(this.dungeon.enemies[this.enemyCounter].health, this.dungeon.enemies[this.enemyCounter].maxHealth, 50)}  ${generateProgressBar(this.dungeon.enemies[this.enemyCounter].defense, this.dungeon.enemies[this.enemyCounter].maxDefense, 25)} Enemy Defended!\n\n` )
+        
+      }
+      // addToOutput(`Current enemy Health: ${this.dungeon.enemies[this.enemyCounter].health}, Attack: ${this.dungeon.enemies[this.enemyCounter].attackPower}, Defense: ${this.dungeon.enemies[this.enemyCounter].defense}, Speed: ${this.dungeon.enemies[this.enemyCounter].speed} \n`);
+      else{ addToOutput(generateProgressBar(this.dungeon.enemies[this.enemyCounter].health, this.dungeon.enemies[this.enemyCounter].maxHealth, 50) + "  " + generateProgressBar(this.dungeon.enemies[this.enemyCounter].defense,this.dungeon.enemies[this.enemyCounter].maxDefense, 25)+ " \n" )}
       
+      addToOutput(" ATTACK POWER: " + this.dungeon.enemies[this.enemyCounter].attackPower )
       //addToOutput(`\n${this.dungeon.currentRoom.description}`);
     }
+    
+    
     
     handleUserInput() {
       
       const input = question("What would you like to do? Attack(1), Defend(2), Use Special Ability(3)\n");
       if (input === "1") {
+        this.dungeon.enemies[this.enemyCounter].makeDecision(player, player.isDefending);
         this.player.attack(this.dungeon.enemies[this.enemyCounter],this.dungeon.enemies[this.enemyCounter].isDefending);
         
-        this.dungeon.enemies[this.enemyCounter].makeDecision(player, player.isDefending);
         if (this.dungeon.enemies[this.enemyCounter].health <= 0) {
           this.dungeon.enemies[this.enemyCounter].eliminated = true;
           addToOutput(`${this.dungeon.enemies[this.enemyCounter].name} defeated!`);
@@ -643,7 +897,7 @@ function ok(){
         }
       } 
       else if (input === "3") {
-        this.player.special(this.dungeon.enemies[this.enemyCounter]);
+        this.player.special(this.dungeon.enemies[this.enemyCounter],this.dungeon.enemies[this.enemyCounter].isDefending);
         this.dungeon.enemies[this.enemyCounter].makeDecision(player, player.isDefending);
         if (this.dungeon.enemies[this.enemyCounter].health <= 0) {
           this.dungeon.enemies[this.enemyCounter].eliminated = true;
@@ -651,9 +905,10 @@ function ok(){
           this.enemyCounter++;
           this.enemyRemaining --;     
         }
-      } else if (input === "flee") {
+      } else if (input === "4") {
         addToOutput(`${this.player.name} has fled from the battle!`);
-        this.dungeon.currentRoom.enemy = null;
+        this.player.flee = true;
+        this.gameOver = true;
       } else {
         addToOutput(`Invalid input: ${input}`);
       }
@@ -669,7 +924,11 @@ function ok(){
     displayGameOver(){
       if (this.player.health <= 0) {
         addToOutput("You have been defeated! Game over.");
-      } else {
+      }
+      else if(this.player.flee){
+        // addToOutput( `${this.player.name} fled!`);
+      }
+      else {
         addToOutput("Congratulations, you have completed the dungeon! Game over.");
       }
     }
@@ -678,29 +937,19 @@ function ok(){
   
   
   
-  const go = new Game(player,start);
-  go.start();
-  
-}
-
-
-function enemyAction( defense, speed, health, moves) {
-  if (Math.random() < speed / 100) {
-    return moves[0];
-  } else if (health < 45 || defense > 0) {
-    if (Math.random() < 0.55) {
-      return moves[1];;
-    } else {
-      return moves[2];
-    }
-  } else {
-    return moves[2];
+  if(advance === "1"){
+    const go = new Game(player,start);
+    go.start();
   }
+  //go.start();
+  
 }
 
 ok();
 
 /*----------------------------To Add------------------------------------------------------------------------------
+
+! Enemy block doesnt time right fix so player and enemy action is stored, then compared, resuilts outputed appropriatly..   -kinda fixed
 
 - Make the defense and speed attack relevant to the game-play, (potentially remove speed idk)
 -- for if player choses to defend then the incoming damage is go to (be subtracted from) the player's defense stat, likewise for the enemy.
